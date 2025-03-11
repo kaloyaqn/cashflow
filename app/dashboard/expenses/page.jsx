@@ -123,7 +123,11 @@ export default function Page() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Име</TableHead>
+                <TableHead>Вид разход</TableHead>
+                <TableHead>Описание</TableHead>
+                <TableHead>Стойност</TableHead>
+                <TableHead>Дата</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -147,7 +151,18 @@ export default function Page() {
                     className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                   >
                     <TableCell className="font-medium">
-                      {expense.icon} {expense.name || "Uncategorized"}
+                      
+                      {expense.categories.icon} {expense.categories.name}
+
+                    </TableCell>
+                    <TableCell>
+                      {expense.description}
+                    </TableCell>
+                    <TableCell>
+                      {expense.amount} лв.
+                    </TableCell>
+                    <TableCell>
+                      {expense.date}
                     </TableCell>
                     <TableCell className='flex justify-end items-end'>
                     <Link href={'category/edit/' + expense.id}>

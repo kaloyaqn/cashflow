@@ -4,11 +4,14 @@ import * as React from "react";
 import {
   BookOpen,
   Bot,
+  CircleDollarSignIcon,
   Frame,
   GalleryVerticalEnd,
+  Home,
   Map,
   PieChart,
   Settings2,
+  SquareStackIcon,
   SquareTerminal,
 } from "lucide-react";
 
@@ -44,13 +47,31 @@ export function AppSidebar({ ...props }) {
     navMain: [
       {
         title:"Начало",
-        url: "/dashboard/"
+        url: "/dashboard/",
+        isLink: true, // Add this property to indicate it's just a link
+        icon: Home,
+
+      },
+      {
+        title: "Разходи",
+        url: "#",
+        icon: CircleDollarSignIcon,
+        items: [
+          {
+            title: "Виж",
+            url: "/dashboard/expenses/",
+          },
+          {
+            title: "Добави",
+            url: "/dashboard/expenses/create",
+          },
+        ],
       },
       {
         title: "Категории",
         url: "/dashboard/category",
-        icon: SquareTerminal,
-        isActive: true,
+        icon: SquareStackIcon,
+        // isActive: true,
         items: [
           {
             title: "Виж",
@@ -60,31 +81,9 @@ export function AppSidebar({ ...props }) {
             title: "Създай",
             url: "/dashboard/category/create", // Updated URL
           },
-          {
-            title: "Settings",
-            url: "#",
-          },
         ],
       },
-      {
-        title: "Разходи",
-        url: "#",
-        icon: Bot,
-        items: [
-          {
-            title: "Виж",
-            url: "/dashboard/expenses/",
-          },
-          {
-            title: "Добави",
-            url: "/expenses/create",
-          },
-          {
-            title: "Quantum",
-            url: "#",
-          },
-        ],
-      },
+
       {
         title: "Documentation",
         url: "#",
