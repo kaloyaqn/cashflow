@@ -8,8 +8,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Toaster } from "@/components/ui/sonner"
 
 export const metadata = {
-  title: "Следене на пари",
-  description: "Следи къде отиват твоите пари",
+  title: "CashFlow - Контролирай парите си",
+  description: "Следи лесно и бързо, къде, защо и кога отиват твоите приходи.",
 };
 
 export default function RootLayout({ children }) {

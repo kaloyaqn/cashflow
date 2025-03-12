@@ -1,119 +1,140 @@
 // components/AuthProvider.jsx
 'use client';
 
-import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [state, setState] = useState({
-    user: null,
-    session: null,
-    loading: true,
-    initialized: false
-  });
+  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Initialize auth only once
+  // Function to manually redirect based on auth state
+  const redirectBasedOnAuth = (isAuthenticated) => {
+    if (isAuthenticated && (pathname === '/login' || pathname === '/register')) {
+      router.push('/dashboard');
+    } else if (!isAuthenticated && pathname.startsWith('/dashboard')) {
+      router.push('/login');
+    }
+  };
+
   useEffect(() => {
-    if (state.initialized) return;
-
-    console.log("AuthProvider initializing...");
-    
-    // Get current session
+    // Get initial session
     const initializeAuth = async () => {
-      try {
-        // Check for existing session in localStorage first to avoid flash of unauthenticated content
-        const cachedSession = localStorage.getItem('supabase_auth_state');
-        if (cachedSession) {
-          try {
-            const parsed = JSON.parse(cachedSession);
-            if (parsed?.session?.expires_at && new Date(parsed.session.expires_at * 1000) > new Date()) {
-              console.log("Using cached auth state");
-              setState({
-                user: parsed.session?.user || null,
-                session: parsed.session,
-                loading: false,
-                initialized: true
-              });
-              return;
-            }
-          } catch (e) {
-            console.warn("Failed to parse cached session", e);
-          }
-        }
-
-        // If no valid cached session, fetch from Supabase
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          setState(prev => ({ ...prev, loading: false, initialized: true }));
-        } else {
-          console.log("Session fetched:", !!data.session);
-          
-          // Cache the session
-          if (data.session) {
-            localStorage.setItem('supabase_auth_state', JSON.stringify(data));
-          }
-          
-          setState({
-            user: data.session?.user || null,
-            session: data.session,
-            loading: false,
-            initialized: true
-          });
-        }
-      } catch (e) {
-        console.error("Unexpected error in initializeAuth:", e);
-        setState(prev => ({ ...prev, loading: false, initialized: true }));
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error getting session:', error);
+        setLoading(false);
+        return;
       }
+      
+      setSession(data.session);
+      setUser(data.session?.user || null);
+      
+      // Handle initial route protection
+      redirectBasedOnAuth(!!data.session);
+      
+      setLoading(false);
     };
 
     initializeAuth();
 
     // Set up auth listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        console.log("Auth state changed:", event);
+      async (event, newSession) => {
+        console.log("Auth state changed:", event, newSession?.user?.id);
         
-        // Update cache
-        if (newSession) {
-          localStorage.setItem('supabase_auth_state', JSON.stringify({ session: newSession }));
-        } else {
-          localStorage.removeItem('supabase_auth_state');
+        setSession(newSession);
+        setUser(newSession?.user || null);
+        
+        // Handle navigation based on auth events
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          router.push('/dashboard');
+        } else if (event === 'SIGNED_OUT') {
+          router.push('/login');
         }
-        
-        setState({
-          user: newSession?.user || null,
-          session: newSession,
-          loading: false,
-          initialized: true
-        });
       }
     );
 
     return () => {
-      if (authListener?.subscription) {
-        authListener.subscription.unsubscribe();
-      }
+      authListener.subscription.unsubscribe();
     };
-  }, [state.initialized]);
+  }, [pathname, router]);
 
-  // Memoize the context value to prevent unnecessary re-renders
-  const value = useMemo(() => ({
-    user: state.user,
-    session: state.session,
-    loading: state.loading,
-    isAuthenticated: !!state.user,
-    
-    // Add auth methods here so components don't need to import supabase
-    signIn: (email, password) => 
-      supabase.auth.signInWithPassword({ email, password }),
-    signOut: () => supabase.auth.signOut(),
-    signUp: (email, password) => 
-      supabase.auth.signUp({ email, password })
-  }), [state.user, state.session, state.loading]);
+  // Custom sign-in function that handles redirection
+  const signIn = async (email, password) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
+      if (error) throw error;
+      
+      // Force redirect if the event listener doesn't catch it
+      if (data.session) {
+        router.push('/dashboard');
+      }
+      
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error signing in:', error);
+      return { data: null, error };
+    }
+  };
+
+  // Custom sign-up function that handles redirection
+  const signUp = async (email, password, userData = {}) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: userData
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Force redirect if the event listener doesn't catch it
+      if (data.session) {
+        router.push('/dashboard');
+      }
+      
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error signing up:', error);
+      return { data: null, error };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Force redirect
+      router.push('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const value = {
+    user,
+    session,
+    loading,
+    isAuthenticated: !!user,
+    signIn,
+    signOut,
+    signUp
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

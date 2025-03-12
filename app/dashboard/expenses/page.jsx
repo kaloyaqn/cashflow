@@ -151,9 +151,7 @@ export default function Page() {
                     className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                   >
                     <TableCell className="font-medium">
-                      
                       {expense.categories.icon} {expense.categories.name}
-
                     </TableCell>
                     <TableCell>
                       {expense.description}
