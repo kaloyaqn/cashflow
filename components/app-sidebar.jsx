@@ -26,17 +26,15 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { useAuthContext } from "@/components/AuthProvider"; // Import the auth context
 
 export function AppSidebar({ ...props }) {
-  const { user } = useAuthContext(); // Get the authenticated user from the context
 
   // Sidebar data
   const data = {
     user: {
-      name: user?.name || "Guest",
-      email: user?.email || "guest@example.com",
-      avatar: user?.avatar || "/avatars/default.jpg",
+      name:"Guest",
+      email:  "guest@example.com",
+      avatar: "/avatars/default.jpg",
     },
     teams: [
       {

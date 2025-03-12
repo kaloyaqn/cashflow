@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuthContext } from "@/components/AuthProvider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { signIn } from "next-auth/react";
 
 export function LoginForm({ className, ...props }) {
   const [email, setEmail] = useState("");
@@ -14,29 +16,28 @@ export function LoginForm({ className, ...props }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
-  const { signIn } = useAuthContext();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-  
-    try {
-      const { data, error } = await signIn(email, password);
-  
-      if (error) throw error;
-      
-      // Explicitly redirect to dashboard
-      if (data?.session) {
-        console.log("Login successful, redirecting...");
-        router.push('/dashboard');
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      setError(error.message || "Failed to sign in");
-    } finally {
-      setLoading(false);
+
+    // Use NextAuth's signIn with the credentials provider
+    const result = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    });
+
+    if (result.error) {
+      console.error("Login error:", result.error);
+      setError(result.error);
+    } else {
+      // If successful, redirect to the dashboard
+      router.push("/dashboard");
     }
+    
+    setLoading(false);
   };
 
   return (
@@ -45,7 +46,6 @@ export function LoginForm({ className, ...props }) {
       className={cn("flex flex-col gap-6", className)}
       {...props}
     >
-      {/* Rest of the form remains the same */}
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">Влезте в профила си</h1>
         <p className="text-muted-foreground text-sm text-balance">
@@ -58,7 +58,6 @@ export function LoginForm({ className, ...props }) {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
         <div className="grid gap-3">
           <Label htmlFor="email">Email</Label>
           <Input

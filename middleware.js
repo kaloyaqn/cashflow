@@ -1,37 +1,21 @@
-// middleware.js
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 export async function middleware(req) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+  // Retrieve token from NextAuth using your secret (set NEXTAUTH_SECRET in your .env.local)
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const { pathname } = req.nextUrl;
 
-  // Check if user is authenticated
-  const { data: { session } } = await supabase.auth.getSession();
-
-  // Get the current path
-  const path = req.nextUrl.pathname;
-  
-  console.log("Middleware running for path:", path, "Session exists:", !!session);
-
-  // Protected routes
-  if (path.startsWith('/dashboard') && !session) {
-    console.log("Redirecting to login from middleware");
-    const redirectUrl = new URL('/login', req.url);
-    return NextResponse.redirect(redirectUrl);
+  // If the user is trying to access any route under /dashboard and is not authenticated, redirect to /login
+  if (pathname.startsWith("/dashboard") && !token) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Redirect to dashboard if already logged in and trying to access login/register
-  if ((path === '/login' || path === '/register') && session) {
-    console.log("Redirecting to dashboard from middleware");
-    const redirectUrl = new URL('/dashboard', req.url);
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  return res;
+  // Allow the request to continue if authenticated or not accessing a protected route
+  return NextResponse.next();
 }
 
-// Specify which routes this middleware should run on
+// Configure the middleware to match the /dashboard routes
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/register'],
+  matcher: ["/dashboard/:path*"],
 };
