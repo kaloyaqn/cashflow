@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,8 +7,13 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuthContext } from "@/components/AuthProvider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client with your public anon key
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export function RegisterForm({ className, ...props }) {
   const [email, setEmail] = useState("");
@@ -16,29 +23,31 @@ export function RegisterForm({ className, ...props }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
-  const { signUp } = useAuthContext();
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-  
+
     try {
-      const userData = {
-        first_name: firstName,
-        last_name: lastName,
-      };
-      
-      const { data, error } = await signUp(email, password, userData);
-  
+      const { data, error } = await supabase.auth.signUp(
+        { email, password },
+        {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        }
+      );
+
       if (error) throw error;
-      
-      // Explicitly redirect to dashboard
-      if (data?.session) {
+
+      // If instant sign-in is enabled, data.user will be populated.
+      if (data?.user) {
         console.log("Registration successful, redirecting...");
-        router.push('/dashboard');
-      } else if (data?.user) {
-        // For email confirmation flow
+        router.push("/dashboard");
+      } else {
+        // Otherwise, inform the user to check their email for confirmation.
         setError("Please check your email to confirm your account before logging in.");
       }
     } catch (error) {
@@ -55,11 +64,10 @@ export function RegisterForm({ className, ...props }) {
       className={cn("flex flex-col gap-6", className)}
       {...props}
     >
-      {/* Rest of the form remains the same */}
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">Започни да пеститиш</h1>
         <p className="text-muted-foreground text-sm text-balance">
-         Попълни нужните данни.
+          Попълни нужните данни.
         </p>
       </div>
       <div className="grid gap-6">
