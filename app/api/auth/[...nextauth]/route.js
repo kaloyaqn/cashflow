@@ -28,6 +28,7 @@ export const authOptions = {
           throw new Error("Invalid email or password");
         }
 
+        // Return an object containing the user's id and email.
         return { id: data.user.id, email: data.user.email };
       },
     }),
@@ -36,10 +37,22 @@ export const authOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async session({ session, token, user }) {
+    // This callback is called whenever a JWT is created or updated.
+    async jwt({ token, user }) {
+      // If user object is available (first sign in), add its id to the token.
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
+    },
+    // This callback is called whenever a session is checked.
+    async session({ session, token }) {
+      // Ensure that the session user object includes the user's id.
+      session.user.id = token.sub;
       return session;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);

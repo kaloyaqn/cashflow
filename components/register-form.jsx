@@ -8,12 +8,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase client with your public anon key
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { signIn } from "next-auth/react";
 
 export function RegisterForm({ className, ...props }) {
   const [email, setEmail] = useState("");
@@ -30,24 +25,48 @@ export function RegisterForm({ className, ...props }) {
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signUp(
-        { email, password },
-        {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-          },
-        }
-      );
+      // Call our server-side registration API route at /api/register
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          first_name: firstName,
+          last_name: lastName,
+        }),
+      });
 
-      if (error) throw error;
+      // Log the raw response text for debugging
+      const rawText = await res.text();
+      console.log("Raw response text:", rawText);
 
-      // If instant sign-in is enabled, data.user will be populated.
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (err) {
+        console.error("Could not parse JSON:", err);
+        throw new Error("Server returned non-JSON response.");
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || "Registration failed");
+      }
+      
+      // If data.user exists, we assume instant sign-in is enabled.
       if (data?.user) {
-        console.log("Registration successful, redirecting...");
-        router.push("/dashboard");
+        console.log("Registration successful, signing in...");
+        const result = await signIn("credentials", {
+          redirect: false,
+          email,
+          password,
+        });
+        if (!result.error) {
+          router.push("/dashboard");
+        } else {
+          setError("Automatic sign-in failed: " + result.error);
+        }
       } else {
-        // Otherwise, inform the user to check their email for confirmation.
         setError("Please check your email to confirm your account before logging in.");
       }
     } catch (error) {
