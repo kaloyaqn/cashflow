@@ -17,32 +17,36 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function Page() {
-  const { data: session, status } = useSession();
-  const user = session?.user;
-  const [expenses, setExpenses] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Function to load expenses (without caching)
-  const loadExpenses = async () => {
-    if (!user) return;
-    try {
-      setLoading(true);
-      const data = await getExpenses(10);
-      setExpenses(data || []);
-      console.log("Loaded expenses:", data?.length || 0);
-    } catch (error) {
-      console.error("Error loading expenses:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load expenses once the user is available
-  useEffect(() => {
-    if (user) {
-      loadExpenses();
-    }
-  }, [user]);
+    const { data: session, status } = useSession();
+    const user = session?.user;
+    const [expenses, setExpenses] = useState([]);
+    const [loading, setLoading] = useState(true);
+  
+    // Call your new /api/expenses route
+    const loadExpenses = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const res = await fetch("/api/expenses"); // GET request to your new route
+        if (!res.ok) {
+          throw new Error(`Failed to fetch expenses: ${res.status}`);
+        }
+        const data = await res.json();
+        setExpenses(data || []);
+        console.log("Loaded expenses:", data?.length || 0);
+      } catch (error) {
+        console.error("Error loading expenses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    useEffect(() => {
+      if (user) {
+        loadExpenses();
+      }
+    }, [user]);
+  
 
   // Animation variants for the table container
   const tableVariants = {
