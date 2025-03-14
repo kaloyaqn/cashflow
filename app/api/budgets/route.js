@@ -25,7 +25,6 @@ export async function GET(request) {
     .from("budgets")
     .select("*")
     .or(`user_id.eq.${userId},user_id.is.null`)
-    .order("name")
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
