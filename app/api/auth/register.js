@@ -20,10 +20,16 @@ export async function POST(request) {
     }
 
     // 3. Attempt to sign up with Supabase
-    const { data, error } = await supabase.auth.signUp(
-      { email, password },
-      { data: { first_name, last_name } }
-    );
+    const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            first_name: first_name,
+            last_name: last_name,
+          },
+        },
+      })
 
     console.log('data', data, 'error', error);
 

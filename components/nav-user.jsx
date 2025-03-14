@@ -31,6 +31,7 @@ import { useSession } from "next-auth/react";
 export function NavUser({ user }) {
   const { isMobile } = useSidebar();
   
+  
 
   return (
     <SidebarMenu>

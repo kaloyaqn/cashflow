@@ -9,17 +9,21 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
 export async function GET() {
+  // Check NextAuth session server-side
   const session = await getServerSession(authOptions);
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   
+  // Get the user ID from the session
   const userId = session.user.id || session.user.sub;
-  // Get categories for the current user and default categories
-  const { data, error } = await supabase
+  
+  // Query categories: get only the public ones (user_id is NULL) and those owned by the current user.
+    const { data, error } = await supabase
     .from("categories")
     .select("*")
-    .or(`user_id.eq.${userId},user_id.is.null`)
-    .order("name");
+    // Only user’s categories OR user_id is null
+    .or(`user_id.eq.${userId},user_id.is.null`);
+
   
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
